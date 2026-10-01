@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>יומן משימות משותף</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Assistant:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: ledger notebook — sticky header with view switch, daily page (week strip + list) or monthly page (calendar grid + monthly goals) */
+:root{
+  --bg:#EEF2F0; --paper:#FBFCFB; --ink:#18302C; --muted:#5E716D; --line:#D3DDD9;
+  --accent:#0E6B5A; --accent-ink:#FFFFFF; --accent-soft:#D6EBE5;
+  --mark:#E3A21A; --mark-soft:#FBEFD3; --danger:#B3402F;
+  --f-display:"Frank Ruhl Libre","David",Georgia,serif;
+  --f-body:"Assistant","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101917; --paper:#16221F; --ink:#E4EEEA; --muted:#93A8A2; --line:#2A3A36;
+  --accent:#4FC2A6; --accent-ink:#0B1A16; --accent-soft:#1D3A33;
+  --mark:#F0B740; --mark-soft:#3A3020; --danger:#E77A68; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101917; --paper:#16221F; --ink:#E4EEEA; --muted:#93A8A2; --line:#2A3A36;
+  --accent:#4FC2A6; --accent-ink:#0B1A16; --accent-soft:#1D3A33;
+  --mark:#F0B740; --mark-soft:#3A3020; --danger:#E77A68; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:860px;margin-inline:auto}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:16px 12px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+h1{font-family:var(--f-display);font-weight:900;font-size:1.7rem;margin:0;line-height:1.1;text-wrap:balance}
+h1 small{display:block;font-family:var(--f-body);font-weight:600;font-size:.8rem;color:var(--muted);letter-spacing:.02em}
+.tabs{display:flex;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:3px}
+.tabs button{border:0;background:none;padding:6px 16px;border-radius:999px;font-weight:700;color:var(--muted)}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.status{font-size:.8rem;color:var(--muted);width:100%;display:flex;gap:8px;align-items:center}
+.status .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.status.live .dot{background:var(--accent)}
+.status.off .dot{background:var(--danger)}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-block:20px 12px}
+.nav h2{font-family:var(--f-display);font-weight:700;font-size:1.5rem;margin:0}
+.nav .sub{color:var(--muted);font-size:.9rem}
+.iconbtn{border:1px solid var(--line);background:var(--paper);width:38px;height:38px;border-radius:10px;font-size:1.1rem;display:grid;place-items:center}
+.link{border:0;background:none;color:var(--accent);font-weight:700;padding:4px 6px}
+/* week strip */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px}
+.wd{border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:6px 0;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px}
+.wd .n{font-family:var(--f-mono);font-size:1rem;font-variant-numeric:tabular-nums}
+.wd .l{font-size:.75rem;color:var(--muted)}
+.wd .bar{width:60%;height:3px;border-radius:2px;background:var(--line);overflow:hidden}
+.wd .bar i{display:block;height:100%;background:var(--accent)}
+.wd.today{border-color:var(--mark)}
+.wd[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.wd[aria-pressed="true"] .l{color:inherit;opacity:.85}
+.wd[aria-pressed="true"] .bar{background:color-mix(in srgb,var(--accent-ink) 35%,transparent)}
+.wd[aria-pressed="true"] .bar i{background:var(--accent-ink)}
+/* sheet */
+.sheet{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.progress{display:flex;align-items:center;gap:12px;font-size:.9rem;color:var(--muted)}
+.progress .track{flex:1;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.progress .track i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.progress b{font-family:var(--f-mono);color:var(--ink);font-variant-numeric:tabular-nums}
+form.add{display:flex;flex-wrap:wrap;gap:8px}
+form.add input[type=text]{flex:1 1 220px;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px}
+.chip{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 12px;font-weight:600;font-size:.9rem;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{background:var(--mark-soft);border-color:var(--mark)}
+.primary{border:0;background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:10px 18px;font-weight:700}
+.picker{position:relative}
+.menu{position:absolute;inset-inline-start:0;top:calc(100% + 4px);background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:230px;padding:6px;z-index:10}
+.menu input{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 10px;margin-bottom:4px}
+.menu button{display:flex;width:100%;align-items:center;gap:8px;border:0;background:none;padding:6px 8px;border-radius:8px;text-align:start}
+.menu button:hover{background:var(--accent-soft)}
+.menu .empty{font-size:.85rem;color:var(--muted);padding:6px 8px}
+.av{width:22px;height:22px;border-radius:50%;flex:none;object-fit:cover}
+ul.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+ul.list li{display:flex;align-items:flex-start;gap:10px;padding-block:10px;border-top:1px dashed var(--line)}
+ul.list li:first-child{border-top:0}
+.check{flex:none;width:24px;height:24px;border:2px solid var(--accent);border-radius:7px;background:none;display:grid;place-items:center;color:var(--accent-ink);margin-top:1px}
+li.done .check{background:var(--accent)}
+.body{flex:1;min-width:0}
+.title{overflow-wrap:anywhere}
+li.done .title{text-decoration:line-through;color:var(--muted)}
+li.prio .title{font-weight:700}
+.meta{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.78rem;color:var(--muted);margin-top:2px;align-items:center}
+.meta .who{display:inline-flex;gap:4px;align-items:center}
+.meta .who img{width:16px;height:16px;border-radius:50%}
+.flag{color:var(--mark);font-weight:700}
+.acts{display:flex;gap:2px;flex:none}
+.acts button{border:0;background:none;color:var(--muted);font-size:.8rem;padding:4px 6px;border-radius:6px}
+.acts button:hover{background:var(--bg);color:var(--ink)}
+.acts button.confirm{color:var(--danger);font-weight:700}
+.emptystate{text-align:center;color:var(--muted);padding:24px 8px;font-size:.95rem}
+.emptystate strong{display:block;font-family:var(--f-display);font-size:1.15rem;color:var(--ink);margin-bottom:4px}
+.section-h{font-family:var(--f-display);font-size:1.2rem;font-weight:700;margin:24px 0 8px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.section-h span{font-family:var(--f-body);font-size:.85rem;color:var(--muted);font-weight:400}
+/* month grid */
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal .hd{font-size:.75rem;color:var(--muted);text-align:center;font-weight:700;padding-block:4px}
+.cell{border:1px solid var(--line);background:var(--paper);border-radius:10px;min-height:76px;padding:6px;display:flex;flex-direction:column;gap:4px;text-align:start}
+.cell.out{visibility:hidden}
+.cell .n{font-family:var(--f-mono);font-size:.85rem;font-variant-numeric:tabular-nums}
+.cell.today{border-color:var(--mark);box-shadow:inset 0 0 0 1px var(--mark)}
+.cell .cnt{margin-top:auto;font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.cell .pips{display:flex;flex-wrap:wrap;gap:2px}
+.cell .pips i{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--accent)}
+.cell .pips i.d{background:var(--accent)}
+.cell.all{background:var(--accent-soft)}
+.cell:hover{border-color:var(--accent)}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.summary div{border-inline-start:3px solid var(--accent);padding-inline-start:10px}
+.summary b{display:block;font-family:var(--f-mono);font-size:1.3rem;font-variant-numeric:tabular-nums}
+.summary span{font-size:.8rem;color:var(--muted)}
+.toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));inset-inline:16px;margin-inline:auto;max-width:420px;background:var(--ink);color:var(--paper);padding:10px 14px;border-radius:10px;font-size:.9rem;text-align:center}
+@media (max-width:520px){
+  .cell{min-height:56px;padding:4px}
+  .cell .cnt{display:none}
+  h1{font-size:1.4rem}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+body{margin:0}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="wrap" dir="rtl" lang="he">
+  <header>
+    <h1>יומן משימות<small>משותף · מתעדכן אצל כולם בזמן אמת</small></h1>
+    <div class="tabs" role="group" aria-label="תצוגה">
+      <button id="tab-day" aria-pressed="true">יומי</button>
+      <button id="tab-month" aria-pressed="false">חודשי</button>
+    </div>
+    <div class="status" id="status"><span class="dot"></span><span id="status-text">מתחבר…</span><label style="margin-inline-start:auto;display:flex;gap:6px;align-items:center">השם שלי <input id="me" type="text" maxlength="40" placeholder="לסימון מי ביצע" style="border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:2px 8px;width:130px"></label></div>
+  </header>
+  <datalist id="people"></datalist>
+
+  <main id="view-day">
+    <div class="nav">
+      <button class="iconbtn" id="d-prev" aria-label="שבוע קודם">›</button>
+      <div style="text-align:center"><h2 id="d-title"></h2><div class="sub" id="d-sub"></div></div>
+      <button class="iconbtn" id="d-next" aria-label="שבוע הבא">‹</button>
+    </div>
+    <div class="week" id="week"></div>
+    <section class="sheet">
+      <div class="progress"><div class="track"><i id="d-bar" style="width:0"></i></div><b id="d-count">0/0</b></div>
+      <form class="add" id="d-form">
+        <input type="text" id="d-input" placeholder="מה צריך לעשות היום?" autocomplete="off" maxlength="200">
+        <button type="button" class="chip" id="d-prio" aria-pressed="false" title="סמן כדחוף">★ דחוף</button>
+        <input type="text" id="d-assign" list="people" placeholder="👤 אחראי" class="chip" style="flex:0 1 140px;min-width:0" maxlength="40">
+        <button class="primary" type="submit">הוסף</button>
+      </form>
+      <ul class="list" id="d-list"></ul>
+    </section>
+    <div style="text-align:center;margin-top:12px"><button class="link" id="d-today">חזרה להיום</button></div>
+  </main>
+
+  <main id="view-month" hidden>
+    <div class="nav">
+      <button class="iconbtn" id="m-prev" aria-label="חודש קודם">›</button>
+      <div style="text-align:center"><h2 id="m-title"></h2></div>
+      <button class="iconbtn" id="m-next" aria-label="חודש הבא">‹</button>
+    </div>
+    <div class="summary" id="m-summary"></div>
+    <div class="cal" id="cal"></div>
+
+    <h3 class="section-h">יעדי החודש <span id="m-goals-count"></span></h3>
+    <section class="sheet">
+      <form class="add" id="m-form">
+        <input type="text" id="m-input" placeholder="יעד לחודש הזה, למשל: לסגור 10 לקוחות חדשים" autocomplete="off" maxlength="200">
+        <button type="button" class="chip" id="m-prio" aria-pressed="false">★ דחוף</button>
+        <input type="text" id="m-assign" list="people" placeholder="👤 אחראי" class="chip" style="flex:0 1 140px;min-width:0" maxlength="40">
+        <button class="primary" type="submit">הוסף יעד</button>
+      </form>
+      <ul class="list" id="m-list"></ul>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<!--
+  ===== הגדרת שיתוף (אופציונלי) =====
+  בלי הגדרה: היומן נשמר בדפדפן שלך בלבד (localStorage).
+  כדי שכמה אנשים יעבדו על אותו יומן בזמן אמת:
+  1. צרו פרויקט חינמי ב-https://console.firebase.google.com
+  2. Build > Firestore Database > Create database
+  3. Project settings > Your apps > Web app — העתיקו את firebaseConfig והדביקו למטה במקום null
+  4. בכללי Firestore (Rules) הגדירו גישה לאוסף tasks (ראו README)
+-->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const FIREBASE_CONFIG = null; // ← הדביקו כאן את האובייקט מ-Firebase, למשל { apiKey: "...", authDomain: "...", projectId: "...", ... }
+const BOARD_ID = "main";      // שם היומן. אפשר להחזיק כמה יומנים נפרדים באותו פרויקט
+
+(function(){
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,"0");
+const ymd=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const ym=d=>d.getFullYear()+"-"+pad(d.getMonth()+1);
+const parse=s=>{const [y,m,dd]=s.split("-").map(Number);return new Date(y,m-1,dd||1)};
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const DAYS=["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ש׳"];
+const monthName=d=>d.toLocaleDateString("he-IL",{month:"long",year:"numeric"});
+const longDate=d=>d.toLocaleDateString("he-IL",{weekday:"long",day:"numeric",month:"long"});
+
+const S={view:"day",sel:ymd(new Date()),month:ym(new Date()),tasks:new Map(),confirmId:null,live:false,
+  draft:{day:{prio:false},month:{prio:false}}};
+
+function toast(msg){const t=$("toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2600)}
+function setStatus(kind,text){$("status").className="status "+kind;$("status-text").textContent=text}
+
+/* ---------- storage: Firestore when configured, otherwise localStorage ---------- */
+const LS_KEY="tasks-journal:"+BOARD_ID;
+let store;
+if(FIREBASE_CONFIG && window.firebase){
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const col=firebase.firestore().collection("boards").doc(BOARD_ID).collection("tasks");
+  store={
+    start(){
+      col.onSnapshot(snap=>{
+        S.tasks=new Map(snap.docs.map(d=>[d.id,Object.assign({id:d.id},d.data())]));
+        S.live=true;setStatus("live","מחובר · כל שינוי נשמר ומשותף");render();
+      },err=>{setStatus("off","אין גישה לנתונים. בדקו את הגדרות Firebase.");console.error(err)});
+    },
+    set:(id,data)=>col.doc(id).set(data),
+    update:(id,data)=>col.doc(id).update(data),
+    remove:id=>col.doc(id).delete()
+  };
+}else{
+  const load=()=>{try{return JSON.parse(localStorage.getItem(LS_KEY)||"{}")}catch(e){return {}}};
+  const persist=()=>{try{localStorage.setItem(LS_KEY,JSON.stringify(Object.fromEntries(S.tasks)))}catch(e){toast("הדפדפן חוסם שמירה מקומית")}};
+  store={
+    start(){
+      const o=load();S.tasks=new Map(Object.entries(o).map(([k,v])=>[k,Object.assign({id:k},v)]));
+      S.live=true;setStatus("off","שמירה מקומית בדפדפן הזה · להפעלת שיתוף ראו README");render();
+      window.addEventListener("storage",e=>{if(e.key===LS_KEY){const o=load();S.tasks=new Map(Object.entries(o).map(([k,v])=>[k,Object.assign({id:k},v)]));render()}});
+    },
+    async set(id,data){S.tasks.set(id,Object.assign({id},data));persist();render()},
+    async update(id,data){S.tasks.set(id,Object.assign({},S.tasks.get(id),data));persist();render()},
+    async remove(id){S.tasks.delete(id);persist();render()}
+  };
+}
+async function saveTask(id,data,isNew){
+  try{isNew?await store.set(id,data):await store.update(id,data)}
+  catch(e){console.error(e);toast("השינוי לא נשמר. נסו שוב.")}
+}
+async function removeTask(id){try{await store.remove(id)}catch(e){toast("המחיקה לא הצליחה. נסו שוב.")}}
+const newId=()=>"t"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+/* ---------- my name (remembered on this device) ---------- */
+let myName="";try{myName=localStorage.getItem("tasks-journal:me")||""}catch(e){}
+
+/* ---------- render ---------- */
+function render(){
+  const all=[...S.tasks.values()];
+  const names=[...new Set(all.map(t=>t.assignee).filter(Boolean))].sort();
+  const dl=$("people");dl.innerHTML="";names.forEach(n=>{const o=document.createElement("option");o.value=n;dl.append(o)});
+  $("d-prio").setAttribute("aria-pressed",S.draft.day.prio);$("m-prio").setAttribute("aria-pressed",S.draft.month.prio);
+  if(S.view==="day") renderDay(all); else renderMonth(all);
+}
+function sortTasks(a,b){return (a.done-b.done)||((b.prio?1:0)-(a.prio?1:0))||((a.createdAt||0)-(b.createdAt||0))}
+function textChip(label,name){const s=document.createElement("span");s.className="who";s.textContent=label+name;return s}
+function taskItem(t){
+  const li=document.createElement("li");
+  if(t.done) li.classList.add("done"); if(t.prio) li.classList.add("prio");
+  const c=document.createElement("button");c.className="check";c.setAttribute("aria-label",t.done?"סמן כלא בוצע":"סמן כבוצע");
+  c.innerHTML=t.done?'<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 7.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>':"";
+  c.onclick=()=>saveTask(t.id,{done:!t.done,doneBy:!t.done?(myName||null):null,doneAt:!t.done?Date.now():null});
+  const body=document.createElement("div");body.className="body";
+  const ti=document.createElement("div");ti.className="title";ti.textContent=t.title;body.append(ti);
+  const meta=document.createElement("div");meta.className="meta";
+  if(t.prio){const f=document.createElement("span");f.className="flag";f.textContent="★ דחוף";meta.append(f)}
+  if(t.assignee) meta.append(textChip("אחראי: ",t.assignee));
+  if(t.done&&t.doneBy&&t.doneBy!==t.assignee) meta.append(textChip("בוצע ע״י ",t.doneBy));
+  if(meta.childNodes.length) body.append(meta);
+  li.append(c,body);
+  const acts=document.createElement("div");acts.className="acts";
+  if(t.kind==="day"&&!t.done){
+    const mv=document.createElement("button");mv.textContent="למחר ←";mv.title="העבר ליום הבא";
+    mv.onclick=()=>{const n=addDays(parse(t.date),1);saveTask(t.id,{date:ymd(n),month:ym(n)});toast("הועבר ל"+longDate(n))};
+    acts.append(mv);
+  }
+  const del=document.createElement("button");
+  if(S.confirmId===t.id){del.textContent="למחוק?";del.className="confirm";del.onclick=()=>{S.confirmId=null;removeTask(t.id)}}
+  else{del.textContent="מחק";del.onclick=()=>{S.confirmId=t.id;render();setTimeout(()=>{if(S.confirmId===t.id){S.confirmId=null;render()}},4000)}}
+  acts.append(del);li.append(acts);
+  return li;
+}
+function emptyState(title,text){const d=document.createElement("li");d.className="emptystate";const s=document.createElement("strong");s.textContent=title;d.append(s,document.createTextNode(text));return d}
+
+function renderDay(all){
+  const sel=parse(S.sel), today=ymd(new Date()), ws=addDays(sel,-sel.getDay());
+  $("d-title").textContent=longDate(sel);
+  $("d-sub").textContent=S.sel===today?"היום":sel.toLocaleDateString("he-IL",{year:"numeric"});
+  const week=$("week");week.innerHTML="";
+  for(let i=0;i<7;i++){
+    const d=addDays(ws,i),k=ymd(d),list=all.filter(t=>t.kind==="day"&&t.date===k),done=list.filter(t=>t.done).length;
+    const b=document.createElement("button");b.className="wd"+(k===today?" today":"");b.setAttribute("aria-pressed",k===S.sel);
+    b.innerHTML='<span class="l">'+DAYS[i]+'</span><span class="n">'+d.getDate()+'</span><span class="bar"><i style="width:'+(list.length?Math.round(done/list.length*100):0)+'%"></i></span>';
+    b.setAttribute("aria-label",longDate(d)+", "+done+" מתוך "+list.length+" בוצעו");
+    b.onclick=()=>{S.sel=k;S.month=ym(d);render()};
+    week.append(b);
+  }
+  const list=all.filter(t=>t.kind==="day"&&t.date===S.sel).sort(sortTasks);
+  const done=list.filter(t=>t.done).length;
+  $("d-bar").style.width=(list.length?done/list.length*100:0)+"%";
+  $("d-count").textContent=done+"/"+list.length;
+  const ul=$("d-list");ul.innerHTML="";
+  if(!list.length) ul.append(emptyState(S.live?"היום הזה עדיין ריק":"טוען משימות…",S.live?"כתבו משימה בשורה למעלה ולחצו על \"הוסף\".":""));
+  list.forEach(t=>ul.append(taskItem(t)));
+}
+function renderMonth(all){
+  const first=parse(S.month+"-01"), y=first.getFullYear(), m=first.getMonth(), days=new Date(y,m+1,0).getDate(), today=ymd(new Date());
+  $("m-title").textContent=monthName(first);
+  const dayTasks=all.filter(t=>t.kind==="day"&&t.month===S.month), goals=all.filter(t=>t.kind==="month"&&t.month===S.month).sort(sortTasks);
+  const dDone=dayTasks.filter(t=>t.done).length, gDone=goals.filter(t=>t.done).length;
+  const sum=$("m-summary");sum.innerHTML="";
+  [[dDone+"/"+dayTasks.length,"משימות יומיות שבוצעו"],[(dayTasks.length?Math.round(dDone/dayTasks.length*100):0)+"%","אחוז ביצוע החודש"],[gDone+"/"+goals.length,"יעדים חודשיים שהושגו"]]
+    .forEach(([v,l])=>{const d=document.createElement("div");const b=document.createElement("b");b.textContent=v;const s=document.createElement("span");s.textContent=l;d.append(b,s);sum.append(d)});
+  const cal=$("cal");cal.innerHTML="";
+  DAYS.forEach(n=>{const h=document.createElement("div");h.className="hd";h.textContent=n;cal.append(h)});
+  for(let i=0;i<first.getDay();i++){const e=document.createElement("div");e.className="cell out";e.setAttribute("aria-hidden","true");cal.append(e)}
+  for(let dd=1;dd<=days;dd++){
+    const k=S.month+"-"+pad(dd),list=dayTasks.filter(t=>t.date===k),done=list.filter(t=>t.done).length;
+    const c=document.createElement("button");c.className="cell"+(k===today?" today":"")+(list.length&&done===list.length?" all":"");
+    c.setAttribute("aria-label",longDate(parse(k))+", "+done+" מתוך "+list.length+" בוצעו");
+    const n=document.createElement("span");n.className="n";n.textContent=dd;c.append(n);
+    if(list.length){
+      const p=document.createElement("span");p.className="pips";
+      list.slice(0,10).sort((a,b)=>b.done-a.done).forEach(t=>{const i=document.createElement("i");if(t.done)i.className="d";p.append(i)});
+      const cnt=document.createElement("span");cnt.className="cnt";cnt.textContent=done+"/"+list.length;
+      c.append(p,cnt);
+    }
+    c.onclick=()=>{S.sel=k;setView("day")};
+    cal.append(c);
+  }
+  $("m-goals-count").textContent=goals.length?gDone+" מתוך "+goals.length+" הושגו":"";
+  const ul=$("m-list");ul.innerHTML="";
+  if(!goals.length) ul.append(emptyState("אין עדיין יעדים לחודש הזה","יעד חודשי הוא משהו גדול שעובדים עליו לאורך החודש. הוסיפו אחד למעלה."));
+  goals.forEach(t=>ul.append(taskItem(t)));
+}
+
+/* ---------- forms ---------- */
+function bindForm(k){
+  const p=k==="day"?"d":"m";
+  $(p+"-prio").onclick=()=>{S.draft[k].prio=!S.draft[k].prio;render()};
+  $(p+"-form").onsubmit=e=>{
+    e.preventDefault();
+    const inp=$(p+"-input"),title=inp.value.trim();if(!title)return;
+    const assignee=$(p+"-assign").value.trim()||null;
+    const data={title,kind:k,date:k==="day"?S.sel:null,month:k==="day"?S.sel.slice(0,7):S.month,done:false,prio:S.draft[k].prio,
+      assignee,createdBy:myName||null,createdAt:Date.now(),doneBy:null,doneAt:null};
+    inp.value="";$(p+"-assign").value="";S.draft[k].prio=false;
+    saveTask(newId(),data,true);inp.focus();
+  };
+}
+
+/* ---------- navigation ---------- */
+function setView(v){
+  S.view=v;$("view-day").hidden=v!=="day";$("view-month").hidden=v!=="month";
+  $("tab-day").setAttribute("aria-pressed",v==="day");$("tab-month").setAttribute("aria-pressed",v==="month");
+  if(v==="day") S.month=S.sel.slice(0,7);
+  render();
+}
+$("tab-day").onclick=()=>setView("day");
+$("tab-month").onclick=()=>setView("month");
+$("d-prev").onclick=()=>{const d=addDays(parse(S.sel),-7);S.sel=ymd(d);S.month=ym(d);render()};
+$("d-next").onclick=()=>{const d=addDays(parse(S.sel),7);S.sel=ymd(d);S.month=ym(d);render()};
+$("d-today").onclick=()=>{const d=new Date();S.sel=ymd(d);S.month=ym(d);render()};
+$("m-prev").onclick=()=>{const d=parse(S.month+"-01");d.setMonth(d.getMonth()-1);S.month=ym(d);render()};
+$("m-next").onclick=()=>{const d=parse(S.month+"-01");d.setMonth(d.getMonth()+1);S.month=ym(d);render()};
+$("me").value=myName;
+$("me").onchange=()=>{myName=$("me").value.trim();try{localStorage.setItem("tasks-journal:me",myName)}catch(e){}};
+bindForm("day");bindForm("month");
+
+render();store.start();
+})();
+</script>
+</body>
+</html>
